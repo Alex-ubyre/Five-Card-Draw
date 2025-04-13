@@ -1,67 +1,112 @@
-import random
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <ctime>
+#include <map>
+using namespace std;
 
-suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
-ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']
+string suits[] = {"Hearts", "Diamonds", "Clubs", "Spades"};
+string ranks[] = {"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"};
 
-def create_deck():
-    return [rank + ' of ' + suit for suit in suits for rank in ranks]
+struct Card {
+    string rank;
+    string suit;
+};
 
-def deal_hand(deck, hand_size=5):
-    return [deck.pop() for _ in range(hand_size)]
+vector<Card> createDeck() {
+    vector<Card> deck;
+    for (const string& suit : suits) {
+        for (const string& rank : ranks) {
+            deck.push_back({rank, suit});
+        }
+    }
+    return deck;
+}
 
-def show_hand(hand, name="Your hand"):
-    print(f"{name}:")
-    for i, card in enumerate(hand):
-        print(f"{i + 1}: {card}")
-    print()
+void shuffleDeck(vector<Card>& deck) {
+    srand(time(0));
+    random_shuffle(deck.begin(), deck.end());
+}
 
-def draw_cards(hand, deck, indices):
-    for i in indices:
-        hand[i] = deck.pop()
-    return hand
+void printHand(const vector<Card>& hand) {
+    for (const auto& card : hand) {
+        cout << card.rank << " of " << card.suit << endl;
+    }
+}
 
-def get_player_draw_choice():
-    while True:
-        choice = input("Enter card numbers to discard (e.g., 1 3 5), or press Enter to keep all: ")
-        if not choice:
-            return []
-        try:
-            indices = [int(x) - 1 for x in choice.split() if 1 <= int(x) <= 5]
-            return list(set(indices))  # remove duplicates
-        except ValueError:
-            print("Invalid input. Please enter numbers between 1 and 5.")
+vector<Card> dealHand(vector<Card>& deck, int count = 5) {
+    vector<Card> hand(deck.begin(), deck.begin() + count);
+    deck.erase(deck.begin(), deck.begin() + count);
+    return hand;
+}
 
-def simple_ai_draw(hand):
-    # Very basic AI: randomly replaces 0-3 cards
-    count = random.randint(0, 3)
-    return random.sample(range(5), count)
+void replaceCards(vector<Card>& hand, vector<Card>& deck) {
+    cout << "Enter card positions (1-5) to replace (e.g., 1 3 5), or 0 to keep all: ";
+    string input;
+    cin.ignore();
+    getline(cin, input);
 
-def main():
-    print("Welcome to Five Card Draw Poker!")
-    
-    deck = create_deck()
-    random.shuffle(deck)
+    istringstream iss(input);
+    int pos;
+    while (iss >> pos) {
+        if (pos >= 1 && pos <= 5) {
+            hand[pos - 1] = deck.back();
+            deck.pop_back();
+        }
+    }
+}
 
-    player_hand = deal_hand(deck)
-    computer_hand = deal_hand(deck)
+int getCardValue(const string& rank) {
+    if (rank == "J") return 11;
+    if (rank == "Q") return 12;
+    if (rank == "K") return 13;
+    if (rank == "A") return 14;
+    return stoi(rank);
+}
 
-    show_hand(player_hand)
+// Simple hand evaluator: returns number of pairs (for demo purposes)
+int evaluateHand(const vector<Card>& hand) {
+    map<string, int> freq;
+    for (const auto& card : hand) {
+        freq[card.rank]++;
+    }
 
-    # Player draw
-    indices = get_player_draw_choice()
-    draw_cards(player_hand, deck, indices)
-    print("\nYour new hand:")
-    show_hand(player_hand)
+    int pairs = 0;
+    for (const auto& [rank, count] : freq) {
+        if (count == 2) pairs++;
+    }
 
-    # Computer draw
-    comp_indices = simple_ai_draw(computer_hand)
-    draw_cards(computer_hand, deck, comp_indices)
+    return pairs;  // returns number of pairs only
+}
 
-    # Reveal computer hand
-    show_hand(computer_hand, "Computer's hand")
+int main() {
+    vector<Card> deck = createDeck();
+    shuffleDeck(deck);
 
-    # No hand ranking in this version
-    print("Game over! (No hand ranking implemented — just for demo)")
+    vector<Card> playerHand = dealHand(deck);
+    vector<Card> computerHand = dealHand(deck);
 
-if __name__ == "__main__":
-    main()
+    cout << "Your hand:\n";
+    printHand(playerHand);
+
+    replaceCards(playerHand, deck);
+
+    cout << "\nYour final hand:\n";
+    printHand(playerHand);
+
+    cout << "\nComputer's hand:\n";
+    printHand(computerHand);
+
+    int playerScore = evaluateHand(playerHand);
+    int computerScore = evaluateHand(computerHand);
+
+    cout << "\nResult: ";
+    if (playerScore > computerScore)
+        cout << "You win!\n";
+    else if (playerScore < computerScore)
+        cout << "Computer wins!\n";
+    else
+        cout << "It's a tie!\n";
+
+    return 0;
+}
